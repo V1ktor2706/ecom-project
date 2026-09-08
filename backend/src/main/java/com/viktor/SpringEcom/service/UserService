@@ -1,0 +1,48 @@
+package com.viktor.SpringEcom.service;
+
+import com.viktor.SpringEcom.model.User;
+import com.viktor.SpringEcom.repo.UserRepo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepo repo;
+    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtService jwtService;
+
+    public User register(User user) {
+        if(repo.existsByUsername(user.getUsername())){//checking for the uname
+            throw new RuntimeException("Username is taken");
+        }
+
+        user.setPassword(encoder.encode(user.getPassword()));//hashing the pass before storing
+        return repo.save(user);//sending to db
+    }
+
+
+    public String verify(User user) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
+        );
+
+        if(authentication.isAuthenticated()){
+            return jwtService.generateToken(user.getUsername());
+        }
+        return "Failed";
+    }
+}
