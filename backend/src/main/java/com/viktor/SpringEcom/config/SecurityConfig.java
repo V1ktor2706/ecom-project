@@ -46,10 +46,13 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults()) // Enable CORS integration in Spring Security
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow browser preflight
+                                       //Public
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
                         .requestMatchers("/register", "/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/product/**").permitAll()
+                                       //Need to be logged in to place an order
                         .requestMatchers(HttpMethod.POST, "/api/orders/place").authenticated()
+                                       //Admin only
                         .requestMatchers(HttpMethod.GET, "/api/orders", "/api/orders/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/product/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/product/**").hasRole("ADMIN")
