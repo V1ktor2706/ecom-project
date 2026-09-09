@@ -1,16 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import "./index.css";
-import { useContext } from "react";
 import { AppProvider } from "./Context/Context.jsx";
-// import { BrowserRouter as Router } from "react-router-dom";
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import 'react-toastify/dist/ReactToastify.css';
+
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    {/* <Router> */}
-      <AppProvider>
-        <App />
-      </AppProvider>
-    {/* </Router> */}
+    <AppProvider>
+      <App />
+    </AppProvider>
   </React.StrictMode>
 );
