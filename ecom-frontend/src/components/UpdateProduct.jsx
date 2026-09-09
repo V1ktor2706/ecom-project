@@ -1,246 +1,194 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
+import React, { useContext, useState, useEffect } from "react";
+import AppContext from "../Context/Context";
+import CheckoutPopup from "./CheckoutPopup";
+import { Button } from 'react-bootstrap';
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
-const UpdateProduct = () => {
-  const { id } = useParams();
-  const [product, setProduct] = useState({});
-  const [image, setImage] = useState();
-  const [updateProduct, setUpdateProduct] = useState({
-    id: null,
-    name: "",
-    description: "",
-    brand: "",
-    price: "",
-    category: "",
-    releaseDate: "",
-    productAvailable: false,
-    stockQuantity: "",
-  });
+const Cart = () => {
+  const { cart, removeFromCart, clearCart } = useContext(AppContext);
+  const [cartItems, setCartItems] = useState([]);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
+
+  const baseUrl = import.meta.env.VITE_BASE_URL;
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const response = await axios.get(
-          `http://localhost:8080/api/product/${id}`
-        );
-
-        setProduct(response.data);
-      
-        const responseImage = await axios.get(
-          `http://localhost:8080/api/product/${id}/image`,
-          { responseType: "blob" }
-        );
-       const imageFile = await converUrlToFile(responseImage.data,response.data.imageName)
-        setImage(imageFile);     
-        setUpdateProduct(response.data);
-      } catch (error) {
-        console.error("Error fetching product:", error);
-      }
-    };
-
-    fetchProduct();
-  }, [id]);
+    setCartItems(cart.length ? cart : []);
+  }, [cart]);
 
   useEffect(() => {
-    console.log("image Updated", image);
-  }, [image]);
-
-
-
-  const converUrlToFile = async(blobData, fileName) => {
-    const file = new File([blobData], fileName, { type: blobData.type });
-    return file;
-  }
- 
-  const handleSubmit = async(e) => {
-    e.preventDefault();
-    console.log("images", image)
-    console.log("productsdfsfsf", updateProduct)
-    const updatedProduct = new FormData();
-    updatedProduct.append("imageFile", image);
-    updatedProduct.append(
-      "product",
-      new Blob([JSON.stringify(updateProduct)], { type: "application/json" })
+    const total = cartItems.reduce(
+      (acc, item) => acc + item.price * item.quantity,
+      0
     );
-  
+    setTotalPrice(total);
+  }, [cartItems]);
 
-  console.log("formData : ", updatedProduct)
-    axios
-      .put(`http://localhost:8080/api/product/${id}`, updatedProduct, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      })
-      .then((response) => {
-        console.log("Product updated successfully:", updatedProduct);
-        alert("Product updated successfully!");
-      })
-      .catch((error) => {
-        console.error("Error updating product:", error);
-        console.log("product unsuccessfull update",updateProduct)
-        alert("Failed to update product. Please try again.");
-      });
-  };
- 
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUpdateProduct({
-      ...updateProduct,
-      [name]: value,
+  const handleIncreaseQuantity = (itemId) => {
+    const newCartItems = cartItems.map((item) => {
+      if (item.id === itemId) {
+        if (item.quantity < item.stockQuantity) {
+          return { ...item, quantity: item.quantity + 1 };
+        } else {
+          toast.info("Cannot add more than available stock");
+        }
+      }
+      return item;
     });
+    setCartItems(newCartItems);
   };
-  
-  const handleImageChange = (e) => {
-    setImage(e.target.files[0]);
+
+  const handleDecreaseQuantity = (itemId) => {
+    const newCartItems = cartItems.map((item) =>
+      item.id === itemId
+        ? { ...item, quantity: Math.max(item.quantity - 1, 1) }
+        : item
+    );
+    setCartItems(newCartItems);
   };
-  
+
+  const handleRemoveFromCart = (itemId) => {
+    removeFromCart(itemId);
+    const newCartItems = cartItems.filter((item) => item.id !== itemId);
+    setCartItems(newCartItems);
+  };
+
+  const handleProceedToCheckout = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.info("Please log in to place your order.");
+      navigate("/login");
+      return;
+    }
+    setShowModal(true);
+  };
 
   return (
-    <div className="update-product-container" >
-      <div className="center-container"style={{marginTop:"7rem"}}>
-        <h1>Update Product</h1>
-        <form className="row g-3 pt-1" onSubmit={handleSubmit}>
-          <div className="col-md-6">
-            <label className="form-label">
-              <h6>Name</h6>
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder={product.name}
-              value={updateProduct.name}
-              onChange={handleChange}
-              name="name"
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="form-label">
-              <h6>Brand</h6>
-            </label>
-            <input
-              type="text"
-              name="brand"
-              className="form-control"
-              placeholder={product.brand}
-              value={updateProduct.brand}
-              onChange={handleChange}
-              id="brand"
-            />
-          </div>
-          <div className="col-12">
-            <label className="form-label">
-              <h6>Description</h6>
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder={product.description}
-              name="description"
-              onChange={handleChange}
-              value={updateProduct.description}
-              id="description"
-            />
-          </div>
-          <div className="col-5">
-            <label className="form-label">
-              <h6>Price</h6>
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              onChange={handleChange}
-              value={updateProduct.price}
-              placeholder={product.price}
-              name="price"
-              id="price"
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="form-label">
-              <h6>Category</h6>
-            </label>
-            <select
-              className="form-select"
-              value={updateProduct.category}
-              onChange={handleChange}
-              name="category"
-              id="category"
-            >
-              <option value="">Select category</option>
-              <option value="laptop">Laptop</option>
-              <option value="headphone">Headphone</option>
-              <option value="mobile">Mobile</option>
-              <option value="electronics">Electronics</option>
-              <option value="toys">Toys</option>
-              <option value="fashion">Fashion</option>
-            </select>
-          </div>
+    <div className="container mt-5 pt-5">
+      <div className="row justify-content-center">
+        <div className="col-md-10">
+          <div className="card shadow">
+            <div className="card-header bg-white">
+              <h4 className="mb-0">Shopping Cart</h4>
+            </div>
+            <div className="card-body">
+              {cartItems.length === 0 ? (
+                <div className="text-center py-5">
+                  <i className="bi bi-cart-x fs-1 text-muted"></i>
+                  <h5 className="mt-3">Your cart is empty</h5>
+                  <a href="/" className="btn btn-primary mt-3">Continue Shopping</a>
+                </div>
+              ) : (
+                <>
+                  <div className="table-responsive">
+                    <table className="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Price</th>
+                          <th>Quantity</th>
+                          <th>Total</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cartItems.map((item) => (
+                          <tr key={item.id}>
+                            <td>
+                              <div className="d-flex align-items-center">
+                                <img
+                                  src={`${baseUrl}/api/product/${item.id}/image`}
+                                  alt={item.name}
+                                  className="rounded me-3"
+                                  width="80"
+                                  height="80"
+                                  style={{ objectFit: "cover" }}
+                                />
+                                <div>
+                                  <h6 className="mb-0">{item.name}</h6>
+                                  <small className="text-muted">{item.brand}</small>
+                                </div>
+                              </div>
+                            </td>
+                            <td>$ {item.price}</td>
+                            <td>
+                              <div className="input-group input-group-sm" style={{ width: "120px" }}>
+                                <button
+                                  className="btn btn-outline-secondary"
+                                  type="button"
+                                  onClick={() => handleDecreaseQuantity(item.id)}
+                                >
+                                  <i className="bi bi-dash"></i>
+                                </button>
+                                <input
+                                  type="text"
+                                  className="form-control text-center"
+                                  value={item.quantity}
+                                  readOnly
+                                />
+                                <button
+                                  className="btn btn-outline-secondary"
+                                  type="button"
+                                  onClick={() => handleIncreaseQuantity(item.id)}
+                                >
+                                  <i className="bi bi-plus"></i>
+                                </button>
+                              </div>
+                            </td>
+                            <td className="fw-bold">$ {(item.price * item.quantity).toFixed(2)}</td>
+                            <td>
+                              <button
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => handleRemoveFromCart(item.id)}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-          <div className="col-md-4">
-            <label className="form-label">
-              <h6>Stock Quantity</h6>
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              onChange={handleChange}
-              placeholder={product.stockQuantity}
-              value={updateProduct.stockQuantity}
-              name="stockQuantity"
-              id="stockQuantity"
-            />
-          </div>
-          <div className="col-md-8">
-            <label className="form-label">
-              <h6>Image</h6>
-            </label>
-            <img
-              src={image ? URL.createObjectURL(image) : "Image unavailable"}
-              alt={product.imageName}
-              style={{
-                width: "100%",
-                height: "180px",
-                objectFit: "cover",
-                padding: "5px",
-                margin: "0",
-              }}
-            />
-            <input
-              className="form-control"
-              type="file"
-              onChange={handleImageChange}
-              placeholder="Upload image"
-              name="imageUrl"
-              id="imageUrl"
-            />
-          </div>
-          <div className="col-12">
-            <div className="form-check">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                name="productAvailable"
-                id="gridCheck"
-                checked={updateProduct.productAvailable}
-                onChange={(e) =>
-                  setUpdateProduct({ ...updateProduct, productAvailable: e.target.checked })
-                }
-              />
-              <label className="form-check-label">Product Available</label>
+                  <div className="card mt-3">
+                    <div className="card-body">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <h5 className="mb-0">Total:</h5>
+                        <h5 className="mb-0">$ {totalPrice.toFixed(2)}</h5>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="d-grid mt-4">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      onClick={handleProceedToCheckout}
+                    >
+                      Proceed to Checkout
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-
-          <div className="col-12">
-            <button type="submit" className="btn btn-primary">
-              Submit
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
+
+      <CheckoutPopup
+        show={showModal}
+        handleClose={() => setShowModal(false)}
+        cartItems={cartItems}
+        totalPrice={totalPrice}
+        onOrderSuccess={() => {
+          clearCart();
+          setCartItems([]);
+        }}
+      />
     </div>
   );
 };
 
-export default UpdateProduct;
+export default Cart;
