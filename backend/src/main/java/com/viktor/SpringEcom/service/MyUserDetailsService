@@ -3,12 +3,14 @@ package com.viktor.SpringEcom.service;
 import com.viktor.SpringEcom.model.User;
 import com.viktor.SpringEcom.repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.List;
 
 @Service
 public class MyUserDetailsService implements UserDetailsService {
@@ -18,17 +20,25 @@ public class MyUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+
         User user = repo.findByUsername(username);
-        if(user == null) {
-            System.out.println("User 404");
-            throw new UsernameNotFoundException("User not found");
+
+        if (user == null) {
+            throw new UsernameNotFoundException("Username not found: " + username);
+        }
+
+        String role = user.getRole();
+        if (role == null) {
+            role = "ROLE_USER";
+        }
+        if (!role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
         }
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                Collections.emptyList() // Or map roles here later
+                List.of(new SimpleGrantedAuthority(role))
         );
-        
     }
 }
