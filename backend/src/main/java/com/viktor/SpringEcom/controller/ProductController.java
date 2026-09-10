@@ -81,7 +81,7 @@ public class ProductController {
 
     @GetMapping("/products/search")
     public ResponseEntity<List<Product>> searchProducts(@RequestParam String keyword){
-        List<Product> products = productService.searchProduct(keyword);
+        List<Product> products = productService.searchProducts(keyword);
         System.out.println("search with: " + keyword);
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
