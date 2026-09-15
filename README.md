@@ -4,7 +4,7 @@ A full-stack e-commerce web application built using React and Spring Boot, featu
 
 # Tech Stack
 
-* Frontend(Generated, because the focus of this project is not on the frontend): React, JavaScript, Axios, HTML5, CSS3, Vite
+* Frontend(AI Generated, because the focus of this project is not on the frontend): React, JavaScript, Axios, HTML5, CSS3, Vite
 * Backend: Java, Spring Boot, Spring Security (JWT), Spring Data JPA, Hibernate, RESTful APIs
 * Database and Tools: PostgreSQL, Lombok, Postman, Maven
 
