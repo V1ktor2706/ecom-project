@@ -29,8 +29,17 @@ public class UserService {
         if(repo.existsByUsername(user.getUsername())){//checking for the uname
             throw new RuntimeException("Username is taken");
         }
+        if(repo.existsByEmail(user.getEmail())){
+            throw new RuntimeException("Email is taken");
+        }
 
         user.setPassword(encoder.encode(user.getPassword()));//hashing the pass before storing
+
+        //set default role if not provided
+        if(user.getRole() == null || user.getRole().isEmpty()){
+            user.setRole("USER");
+        }
+
         return repo.save(user);//sending to db
     }
 
@@ -41,8 +50,9 @@ public class UserService {
         );
 
         if(authentication.isAuthenticated()){
-            return jwtService.generateToken(user.getUsername());
+            return jwtService.generateToken(authentication.getName());
         }
         return "Failed";
     }
+
 }
