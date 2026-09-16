@@ -14,6 +14,7 @@ import Login from "./components/Login";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import { ToastContainer } from "react-toastify";
+import Register from "./components/Register";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -34,6 +35,7 @@ function App() {
               path="/"
               element={<Home selectedCategory={selectedCategory} />}
             />
+            <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/add_product" element={<AddProduct />} />
             <Route path="/product" element={<Product />} />
