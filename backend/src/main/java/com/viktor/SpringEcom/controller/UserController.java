@@ -5,18 +5,16 @@ import com.viktor.SpringEcom.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@CrossOrigin
+@CrossOrigin//to use the frontend ui
 public class UserController {
 
     @Autowired
     private UserService userService;
 
+    //response entity to represent HTTP response
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody User user) {
         userService.register(user);
