@@ -19,12 +19,15 @@ public class MyUserDetailsService implements UserDetailsService {
     private UserRepo repo;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        return loadUserByUsernameOrEmail(identifier);
+    }
 
-        User user = repo.findByUsername(username);
+    public UserDetails loadUserByUsernameOrEmail(String identifier) throws UsernameNotFoundException {
+        User user = repo.findByUsernameOrEmail(identifier, identifier);
 
         if (user == null) {
-            throw new UsernameNotFoundException("Username not found: " + username);
+            throw new UsernameNotFoundException("User not found with username or email: " + identifier);
         }
 
         String role = user.getRole();
