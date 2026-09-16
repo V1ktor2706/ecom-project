@@ -43,17 +43,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(Customizer.withDefaults()) // Enable CORS integration in Spring Security
+                .cors(Customizer.withDefaults()) // Enable CORS integration in Security
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                                       //Public
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() 
-                        .requestMatchers("/register", "/login").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow browser preflight
+                        .requestMatchers("/login", "/api/login", "/register", "/api/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/product/**").permitAll()
-                                       //Need to be logged in to place an order
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/orders/place").authenticated()
-                                       //Admin only
                         .requestMatchers(HttpMethod.GET, "/api/orders", "/api/orders/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/product").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/product/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/product/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/product/**").hasRole("ADMIN")
