@@ -1,194 +1,167 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import AppContext from "../Context/Context";
-import CheckoutPopup from "./CheckoutPopup";
-import { Button } from 'react-bootstrap';
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import unplugged from "../assets/unplugged.png";
 
-const Cart = () => {
-  const { cart, removeFromCart, clearCart } = useContext(AppContext);
-  const [cartItems, setCartItems] = useState([]);
-  const [totalPrice, setTotalPrice] = useState(0);
-  const [showModal, setShowModal] = useState(false);
-  const navigate = useNavigate();
-
-  const baseUrl = import.meta.env.VITE_BASE_URL;
+const Home = ({ selectedCategory }) => {
+  const { data, isError, addToCart, refreshData } = useContext(AppContext);
+  const [isDataFetched, setIsDataFetched] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastProduct, setToastProduct] = useState(null);
 
   useEffect(() => {
-    setCartItems(cart.length ? cart : []);
-  }, [cart]);
-
-  useEffect(() => {
-    const total = cartItems.reduce(
-      (acc, item) => acc + item.price * item.quantity,
-      0
-    );
-    setTotalPrice(total);
-  }, [cartItems]);
-
-  const handleIncreaseQuantity = (itemId) => {
-    const newCartItems = cartItems.map((item) => {
-      if (item.id === itemId) {
-        if (item.quantity < item.stockQuantity) {
-          return { ...item, quantity: item.quantity + 1 };
-        } else {
-          toast.info("Cannot add more than available stock");
-        }
-      }
-      return item;
-    });
-    setCartItems(newCartItems);
-  };
-
-  const handleDecreaseQuantity = (itemId) => {
-    const newCartItems = cartItems.map((item) =>
-      item.id === itemId
-        ? { ...item, quantity: Math.max(item.quantity - 1, 1) }
-        : item
-    );
-    setCartItems(newCartItems);
-  };
-
-  const handleRemoveFromCart = (itemId) => {
-    removeFromCart(itemId);
-    const newCartItems = cartItems.filter((item) => item.id !== itemId);
-    setCartItems(newCartItems);
-  };
-
-  const handleProceedToCheckout = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.info("Please log in to place your order.");
-      navigate("/login");
-      return;
+    if (!isDataFetched) {
+      refreshData();
+      setIsDataFetched(true);
     }
-    setShowModal(true);
+  }, [refreshData, isDataFetched]);
+
+  useEffect(() => {
+    console.log(data, 'data from home page');
+  }, [data]);
+
+  useEffect(() => {
+    let toastTimer;
+    if (showToast) {
+      toastTimer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+    }
+    return () => clearTimeout(toastTimer);
+  }, [showToast]);
+
+  // Function to convert base64 string to data URL
+  const convertBase64ToDataURL = (base64String, mimeType = 'image/jpeg') => {
+    if (!base64String) return unplugged; // Return fallback image if no data
+    
+    // If it's already a data URL, return as is
+    if (base64String.startsWith('data:')) {
+      return base64String;
+    }
+    
+    // If it's already a URL, return as is
+    if (base64String.startsWith('http')) {
+      return base64String;
+    }
+    
+    // Convert base64 string to data URL
+    return `data:${mimeType};base64,${base64String}`;
   };
 
+  const handleAddToCart = (e, product) => {
+    e.preventDefault();
+    addToCart(product);
+    setToastProduct(product);
+    setShowToast(true);
+  };
+
+  const filteredProducts = selectedCategory
+    ? data.filter((product) => product.category === selectedCategory)
+    : data;
+
+  if (isError) {
+    return (
+      <div className="container d-flex justify-content-center align-items-center" style={{ height: "100vh" }}>
+        <div className="text-center">
+          <img src={unplugged} alt="Error" className="img-fluid" width="100" />
+          <h4 className="mt-3">Something went wrong</h4>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="container mt-5 pt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-10">
-          <div className="card shadow">
-            <div className="card-header bg-white">
-              <h4 className="mb-0">Shopping Cart</h4>
-            </div>
-            <div className="card-body">
-              {cartItems.length === 0 ? (
-                <div className="text-center py-5">
-                  <i className="bi bi-cart-x fs-1 text-muted"></i>
-                  <h5 className="mt-3">Your cart is empty</h5>
-                  <a href="/" className="btn btn-primary mt-3">Continue Shopping</a>
+    <>
+      {/* Toast Notification */}
+      <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 1050 }}>
+        <div 
+          className={`toast ${showToast ? 'show' : 'hide'}`}
+          role="alert" 
+          aria-live="assertive" 
+          aria-atomic="true"
+        >
+          <div className="toast-header bg-success text-white">
+            <strong className="me-auto">Added to Cart</strong>
+            <button 
+              type="button" 
+              className="btn-close btn-close-white" 
+              onClick={() => setShowToast(false)}
+              aria-label="Close"
+            ></button>
+          </div>
+          <div className="toast-body">
+            {toastProduct && (
+              <div className="d-flex align-items-center">
+                <img 
+                  src={convertBase64ToDataURL(toastProduct.imageData)} 
+                  alt={toastProduct.name} 
+                  className="me-2 rounded" 
+                  width="40" 
+                  height="40"
+                  onError={(e) => {
+                    e.target.src = unplugged; // Fallback image
+                  }}
+                />
+                <div>
+                  <div className="fw-bold">{toastProduct.name}</div>
+                  <small>Successfully added to your cart!</small>
                 </div>
-              ) : (
-                <>
-                  <div className="table-responsive">
-                    <table className="table table-hover align-middle">
-                      <thead>
-                        <tr>
-                          <th>Product</th>
-                          <th>Price</th>
-                          <th>Quantity</th>
-                          <th>Total</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cartItems.map((item) => (
-                          <tr key={item.id}>
-                            <td>
-                              <div className="d-flex align-items-center">
-                                <img
-                                  src={`${baseUrl}/api/product/${item.id}/image`}
-                                  alt={item.name}
-                                  className="rounded me-3"
-                                  width="80"
-                                  height="80"
-                                  style={{ objectFit: "cover" }}
-                                />
-                                <div>
-                                  <h6 className="mb-0">{item.name}</h6>
-                                  <small className="text-muted">{item.brand}</small>
-                                </div>
-                              </div>
-                            </td>
-                            <td>$ {item.price}</td>
-                            <td>
-                              <div className="input-group input-group-sm" style={{ width: "120px" }}>
-                                <button
-                                  className="btn btn-outline-secondary"
-                                  type="button"
-                                  onClick={() => handleDecreaseQuantity(item.id)}
-                                >
-                                  <i className="bi bi-dash"></i>
-                                </button>
-                                <input
-                                  type="text"
-                                  className="form-control text-center"
-                                  value={item.quantity}
-                                  readOnly
-                                />
-                                <button
-                                  className="btn btn-outline-secondary"
-                                  type="button"
-                                  onClick={() => handleIncreaseQuantity(item.id)}
-                                >
-                                  <i className="bi bi-plus"></i>
-                                </button>
-                              </div>
-                            </td>
-                            <td className="fw-bold">$ {(item.price * item.quantity).toFixed(2)}</td>
-                            <td>
-                              <button
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => handleRemoveFromCart(item.id)}
-                              >
-                                <i className="bi bi-trash"></i>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="card mt-3">
-                    <div className="card-body">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <h5 className="mb-0">Total:</h5>
-                        <h5 className="mb-0">$ {totalPrice.toFixed(2)}</h5>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="d-grid mt-4">
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      onClick={handleProceedToCheckout}
-                    >
-                      Proceed to Checkout
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <CheckoutPopup
-        show={showModal}
-        handleClose={() => setShowModal(false)}
-        cartItems={cartItems}
-        totalPrice={totalPrice}
-        onOrderSuccess={() => {
-          clearCart();
-          setCartItems([]);
-        }}
-      />
-    </div>
+      <div className="container mt-5 pt-5">
+        <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+          {!filteredProducts || filteredProducts.length === 0 ? (
+            <div className="col-12 text-center my-5">
+              <h4>No Products Available</h4>
+            </div>
+          ) : (
+            filteredProducts.map((product) => {
+              const { id, brand, name, price, productAvailable, imageData, stockQuantity } = product;
+              
+              return (
+                <div className="col" key={id}>
+                  <div className={`card h-100 shadow-sm ${!productAvailable ? 'bg-light' : ''}`}>
+                    <Link to={`/product/${id}`} className="text-decoration-none text-dark">
+                      <img
+                        src={convertBase64ToDataURL(imageData)} 
+                        alt={name}
+                        className="card-img-top p-2"
+                        style={{ height: "150px", objectFit: "cover" }}
+                        onError={(e) => {
+                          e.target.src = unplugged; // Fallback image if conversion fails
+                        }}
+                      />
+                      <div className="card-body d-flex flex-column">
+                        <h5 className="card-title">{name.toUpperCase()}</h5>
+                        <p className="card-text text-muted fst-italic">~ {brand}</p>
+                        <hr />
+                        <div className="mt-auto">
+                          <h5 className="mb-2 fw-bold">
+                            <i className="bi bi-currency-dollar"></i>{price}
+                          </h5>
+                          <button
+                            className="btn btn-primary w-100"
+                            onClick={(e) => handleAddToCart(e, product)}
+                            disabled={!productAvailable || stockQuantity === 0}
+                          >
+                            {stockQuantity !== 0 ? "Add to Cart" : "Out of Stock"}
+                          </button>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </>
   );
 };
 
-export default Cart;
+export default Home;
