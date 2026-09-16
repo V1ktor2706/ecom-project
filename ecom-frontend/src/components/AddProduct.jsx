@@ -1,9 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import API from "../axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const AddProduct = () => {
+  const navigate = useNavigate();
+
+  // Protect the route on component mount
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user")); 
+
+    if (!user || !user.roles?.includes("ADMIN")) {
+      toast.error("Access denied. Admins only.");
+      navigate("/"); // Redirect unauthorized users to home page
+    }
+  }, [navigate]);
+
   const [product, setProduct] = useState({
     name: "",
     brand: "",
@@ -20,7 +32,6 @@ const AddProduct = () => {
   const [loading, setLoading] = useState(false);
   const [validated, setValidated] = useState(false);
   const [errors, setErrors] = useState({});
-  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -256,7 +267,7 @@ const AddProduct = () => {
         </div>
 
         <div className="col-12 text-center">
-          <button type="submit" className="btn btn-primary">
+          <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? "Adding..." : "Add Product"}
           </button>
         </div>
