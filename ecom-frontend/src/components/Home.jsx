@@ -1,13 +1,13 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import AppContext from "../Context/Context";
 import unplugged from "../assets/unplugged.png";
 
 const Home = ({ selectedCategory }) => {
   const { data, isError, addToCart, refreshData } = useContext(AppContext);
-  const [products, setProducts] = useState([]);
   const [isDataFetched, setIsDataFetched] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastProduct, setToastProduct] = useState(null);
 
   useEffect(() => {
     if (!isDataFetched) {
@@ -17,165 +17,148 @@ const Home = ({ selectedCategory }) => {
   }, [refreshData, isDataFetched]);
 
   useEffect(() => {
-    if (data && data.length > 0) {
-      const fetchImagesAndUpdateProducts = async () => {
-        const updatedProducts = await Promise.all(
-          data.map(async (product) => {
-            try {
-              const response = await axios.get(
-                `http://localhost:8080/api/product/${product.id}/image`,
-                { responseType: "blob" }
-              );
-              const imageUrl = URL.createObjectURL(response.data);
-              return { ...product, imageUrl };
-            } catch (error) {
-              console.error(
-                "Error fetching image for product ID:",
-                product.id,
-                error
-              );
-              return { ...product, imageUrl: "placeholder-image-url" };
-            }
-          })
-        );
-        setProducts(updatedProducts);
-      };
-
-      fetchImagesAndUpdateProducts();
-    }
+    console.log(data, 'data from home page');
   }, [data]);
 
+  useEffect(() => {
+    let toastTimer;
+    if (showToast) {
+      toastTimer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+    }
+    return () => clearTimeout(toastTimer);
+  }, [showToast]);
+
+  // Function to convert base64 string to data URL
+  const convertBase64ToDataURL = (base64String, mimeType = 'image/jpeg') => {
+    if (!base64String) return unplugged; // Return fallback image if no data
+    
+    // If it's already a data URL, return as is
+    if (base64String.startsWith('data:')) {
+      return base64String;
+    }
+    
+    // If it's already a URL, return as is
+    if (base64String.startsWith('http')) {
+      return base64String;
+    }
+    
+    // Convert base64 string to data URL
+    return `data:${mimeType};base64,${base64String}`;
+  };
+
+  const handleAddToCart = (e, product) => {
+    e.preventDefault();
+    addToCart(product);
+    setToastProduct(product);
+    setShowToast(true);
+  };
+
   const filteredProducts = selectedCategory
-    ? products.filter((product) => product.category === selectedCategory)
-    : products;
+    ? data.filter((product) => product.category === selectedCategory)
+    : data;
 
   if (isError) {
     return (
-      <h2 className="text-center" style={{ padding: "18rem" }}>
-        <img
-          src={unplugged}
-          alt="Error"
-          style={{ width: "100px", height: "100px" }}
-        />
-      </h2>
+      <div className="container d-flex justify-content-center align-items-center" style={{ height: "100vh" }}>
+        <div className="text-center">
+          <img src={unplugged} alt="Error" className="img-fluid" width="100" />
+          <h4 className="mt-3">Something went wrong</h4>
+        </div>
+      </div>
     );
   }
-
+  
   return (
     <>
-      <div
-        className="grid"
-        style={{
-          marginTop: "64px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: "20px",
-          padding: "20px",
-        }}
-      >
-        {filteredProducts.length === 0 ? (
-          <h2
-            className="text-center"
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            No Products Available
-          </h2>
-        ) : (
-          filteredProducts.map((product) => {
-            const { id, brand, name, price, productAvailable, imageUrl } =
-              product;
-            return (
-              <div
-                className="card mb-3"
-                style={{
-                  width: "250px",
-                  height: "360px",
-                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  backgroundColor: productAvailable ? "#fff" : "#ccc",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-start",
-                  alignItems: "stretch",
-                }}
-                key={id}
-              >
-                <Link
-                  to={`/product/${id}`}
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  <img
-                    src={imageUrl}
-                    alt={name}
-                    style={{
-                      width: "100%",
-                      height: "150px",
-                      objectFit: "cover",
-                      padding: "5px",
-                      margin: "0",
-                      borderRadius: "10px 10px 10px 10px",
-                    }}
-                  />
-                  <div
-                    className="card-body"
-                    style={{
-                      flexGrow: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      padding: "10px",
-                    }}
-                  >
-                    <div>
-                      <h5
-                        className="card-title"
-                        style={{ margin: "0 0 10px 0", fontSize: "1.2rem" }}
-                      >
-                        {name.toUpperCase()}
-                      </h5>
-                      <i
-                        className="card-brand"
-                        style={{ fontStyle: "italic", fontSize: "0.8rem" }}
-                      >
-                        {"~ " + brand}
-                      </i>
-                    </div>
-                    <hr className="hr-line" style={{ margin: "10px 0" }} />
-                    <div className="home-cart-price">
-                      <h5
-                        className="card-text"
-                        style={{
-                          fontWeight: "600",
-                          fontSize: "1.1rem",
-                          marginBottom: "5px",
-                        }}
-                      >
-                        {/* Changed currency icon to Dollar sign */}
-                        ${price}
-                      </h5>
-                    </div>
-                    <button
-                      className="btn-hover color-9"
-                      style={{ margin: "10px 25px 0px " }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        addToCart(product);
-                      }}
-                      disabled={!productAvailable}
-                    >
-                      {productAvailable ? "Add to Cart" : "Out of Stock"}
-                    </button>
-                  </div>
-                </Link>
+      {/* Toast Notification */}
+      <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 1050 }}>
+        <div 
+          className={`toast ${showToast ? 'show' : 'hide'}`}
+          role="alert" 
+          aria-live="assertive" 
+          aria-atomic="true"
+        >
+          <div className="toast-header bg-success text-white">
+            <strong className="me-auto">Added to Cart</strong>
+            <button 
+              type="button" 
+              className="btn-close btn-close-white" 
+              onClick={() => setShowToast(false)}
+              aria-label="Close"
+            ></button>
+          </div>
+          <div className="toast-body">
+            {toastProduct && (
+              <div className="d-flex align-items-center">
+                <img 
+                  src={convertBase64ToDataURL(toastProduct.imageData)} 
+                  alt={toastProduct.name} 
+                  className="me-2 rounded" 
+                  width="40" 
+                  height="40"
+                  onError={(e) => {
+                    e.target.src = unplugged; // Fallback image
+                  }}
+                />
+                <div>
+                  <div className="fw-bold">{toastProduct.name}</div>
+                  <small>Successfully added to your cart!</small>
+                </div>
               </div>
-            );
-          })
-        )}
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="container mt-5 pt-5">
+        <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+          {!filteredProducts || filteredProducts.length === 0 ? (
+            <div className="col-12 text-center my-5">
+              <h4>No Products Available</h4>
+            </div>
+          ) : (
+            filteredProducts.map((product) => {
+              const { id, brand, name, price, productAvailable, imageData, stockQuantity } = product;
+              
+              return (
+                <div className="col" key={id}>
+                  <div className={`card h-100 shadow-sm ${!productAvailable ? 'bg-light' : ''}`}>
+                    <Link to={`/product/${id}`} className="text-decoration-none text-dark">
+                      <img
+                        src={convertBase64ToDataURL(imageData)} 
+                        alt={name}
+                        className="card-img-top p-2"
+                        style={{ height: "150px", objectFit: "cover" }}
+                        onError={(e) => {
+                          e.target.src = unplugged; // Fallback image if conversion fails
+                        }}
+                      />
+                      <div className="card-body d-flex flex-column">
+                        <h5 className="card-title">{name.toUpperCase()}</h5>
+                        <p className="card-text text-muted fst-italic">~ {brand}</p>
+                        <hr />
+                        <div className="mt-auto">
+                          <h5 className="mb-2 fw-bold">
+                            <i className="bi bi-currency-dollar"></i>{price}
+                          </h5>
+                          <button
+                            className="btn btn-primary w-100"
+                            onClick={(e) => handleAddToCart(e, product)}
+                            disabled={!productAvailable || stockQuantity === 0}
+                          >
+                            {stockQuantity !== 0 ? "Add to Cart" : "Out of Stock"}
+                          </button>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </>
   );
