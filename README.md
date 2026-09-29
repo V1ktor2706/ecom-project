@@ -16,7 +16,6 @@ A full-stack e-commerce web application built using React and Spring Boot, featu
 * Cart & Order Flow
 * Global CORS Integration
 
-# How to Run the Project
 
 ## Prerequisites
 
